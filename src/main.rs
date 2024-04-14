@@ -1,18 +1,49 @@
-use std::net::TcpListener;
+#![allow(non_snake_case)]
+use std::{io::{BufRead, BufReader, Write}, net::{TcpListener, TcpStream}};
 
 fn main() {
     println!("Hello there!");
+    println!("Started http server, listening on port: 127.0.0.1:8081...");
 
-    let tcpListener = TcpListener::bind("127.0.0.1:8081"); // try to bind to port 80
+    let tcp_listener = TcpListener::bind("127.0.0.1:8081"); // try to bind to port 80
 
-    for stream in tcpListener.unwrap().incoming() {
+    for stream in tcp_listener.unwrap().incoming() {
         match stream {
             Ok(stream) => {
-                println!("Connection successful!");
+                client_handle(stream);
             },
             Err(stream) => {
-                println!("Connection failed");
+                println!("Connection failed error: {}", stream);
             }
         }
     }
+}
+
+fn handle_connection(stream: &TcpStream) {
+    let buffer = BufReader::new(stream);
+    let http_request: Vec<_> = buffer
+        .lines()
+        .map(|result| result.unwrap())
+        .take_while(|line| !line.is_empty())
+        .collect();
+
+    println!("Request: {:#?}", http_request);
+}
+
+fn handle_response(mut stream: TcpStream) {
+    let response = b"HTTP/1.0 200 OK\r
+            Content-Type: text/html; charset=UTF-8\r
+            Content-Length: 37\r
+            \r\n\r\n
+            <!DOCTYPE html>
+            <html><head><body>Hello world!!!</head></body></html>\r";
+    match stream.write_all(response) {
+        Ok(_) => println!("Succesfuly sent message"),
+        Err(ex) => println!("Failed {}", ex),
+    }
+}
+
+fn client_handle(stream: TcpStream) {
+    handle_connection(&stream);
+    handle_response(stream);
 }
