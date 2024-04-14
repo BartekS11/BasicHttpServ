@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use std::{io::{BufRead, BufReader, Write}, net::{TcpListener, TcpStream}};
+use std::{io::{BufRead, Read, Write}, net::{TcpListener, TcpStream}};
 
 fn main() {
     println!("Hello there!");
@@ -19,8 +19,9 @@ fn main() {
     }
 }
 
-fn handle_connection(stream: &TcpStream) {
-    let buffer = BufReader::new(stream);
+fn handle_connection(mut stream: &TcpStream) {
+    let mut buffer = [0; 1024];
+    stream.read(&mut buffer).unwrap();
     let http_request: Vec<_> = buffer
         .lines()
         .map(|result| result.unwrap())
@@ -28,6 +29,8 @@ fn handle_connection(stream: &TcpStream) {
         .collect();
 
     println!("Request: {:#?}", http_request);
+    stream.flush().unwrap();
+
 }
 
 fn handle_response(mut stream: TcpStream) {
@@ -41,6 +44,7 @@ fn handle_response(mut stream: TcpStream) {
         Ok(_) => println!("Succesfuly sent message"),
         Err(ex) => println!("Failed {}", ex),
     }
+    stream.flush().unwrap();
 }
 
 fn client_handle(stream: TcpStream) {
